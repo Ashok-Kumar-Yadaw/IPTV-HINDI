@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>ASHOK IPTV Player</title>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{color-scheme:dark}
+body{
+  font-family:Arial,Helvetica,sans-serif;
+  background:#0b1020;
+  color:#fff;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+header{
+  background:linear-gradient(135deg,#111827,#1e3a8a);
+  padding:18px 15px;
+  padding-top:max(18px,env(safe-area-inset-top));
+  text-align:center;
+  box-shadow:0 3px 15px #0008;
+}
+header h1{font-size:clamp(21px,4vw,25px);line-height:1.25}
+header p{font-size:13px;color:#cbd5e1;margin-top:5px;line-height:1.4}
+
+.container{
+  width:min(95%,1200px);
+  max-width:1200px;
+  margin:20px auto;
+}
+
+.panel{
+  background:#111827;
+  border:1px solid #263248;
+  border-radius:16px;
+  padding:15px;
+  margin-bottom:18px;
+  box-shadow:0 8px 25px #0005;
+}
+
+.input-row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+input[type=text]{
+  flex:1;
+  min-width:220px;
+  min-height:46px;
+  padding:13px;
+  border-radius:10px;
+  border:1px solid #475569;
+  background:#020617;
+  color:#fff;
+  outline:none;
+}
+
+button{
+  border:0;
+  min-height:46px;
+  padding:12px 17px;
+  border-radius:10px;
+  cursor:pointer;
+  color:#fff;
+  background:#2563eb;
+  font-weight:bold;
+}
+button:hover{background:#1d4ed8}
+.secondary{background:#475569}
+.success{background:#059669}
+
+.file-label{
+  display:inline-block;
+  margin-top:12px;
+  background:#7c3aed;
+  padding:11px 16px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+  min-height:44px;
+  line-height:22px;
+}
+#fileInput{display:none}
+
+video{
+  width:100%;
+  aspect-ratio:16/9;
+  max-height:600px;
+  background:#000;
+  border-radius:14px;
+  display:block;
+  object-fit:contain;
+}
+
+.now{
+  padding:12px 3px 0;
+  color:#93c5fd;
+  font-size:15px;
+}
+
+.status{
+  margin-top:10px;
+  padding:10px;
+  border-radius:9px;
+  background:#020617;
+  color:#cbd5e1;
+  font-size:13px;
+}
+
+.layout{
+  display:grid;
+  grid-template-columns:330px 1fr;
+  gap:18px;
+  align-items:start;
+}
+
+.channels{
+  max-height:620px;
+  overflow-y:auto;
+}
+
+.search{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #475569;
+  background:#020617;
+  color:#fff;
+  margin-bottom:10px;
+}
+.filter-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 150px;
+  gap:8px;
+  margin-bottom:10px;
+}
+.filter-row .search{margin-bottom:0}
+.filter-select{
+  width:100%;
+  padding:12px 10px;
+  border-radius:10px;
+  border:1px solid #475569;
+  background:#020617;
+  color:#fff;
+  outline:none;
+  min-height:44px;
+}
+
+.channel{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  margin-bottom:7px;
+  background:#1e293b;
+  border-radius:10px;
+  cursor:pointer;
+  transition:.2s;
+}
+.channel:hover{
+  background:#334155;
+  transform:translateX(2px);
+}
+@media (hover:none){
+  .channel:hover{transform:none}
+}
+.channel.active{
+  background:#1d4ed8;
+}
+.logo{
+  width:42px;
+  height:42px;
+  border-radius:8px;
+  object-fit:contain;
+  background:#fff;
+}
+.channel-name{
+  font-size:14px;
+  font-weight:bold;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.channel-group{
+  color:#94a3b8;
+  font-size:11px;
+  margin-top:3px;
+}
+
+.empty{
+  text-align:center;
+  color:#94a3b8;
+  padding:30px 10px;
+}
+
+footer{
+  text-align:center;
+  color:#64748b;
+  padding:20px;
+  font-size:12px;
+}
+
+@media(max-width:800px){
+  .container{width:calc(100% - 20px);margin:12px auto}
+  .panel{padding:12px;border-radius:13px;margin-bottom:12px}
+  .layout{display:flex;flex-direction:column}
+  .layout > .panel:nth-child(2){order:-1}
+  .channels{max-height:42vh;min-height:120px}
+  .input-row{display:grid;grid-template-columns:1fr 1fr}
+  .filter-row{grid-template-columns:minmax(0,1fr) 145px}
+  input[type=text]{grid-column:1 / -1;width:100%;min-width:0}
+  button{width:100%;padding:12px 10px}
+  .file-label{width:100%;text-align:center}
+  video{max-height:none}
+}
+
+@media(max-width:480px){
+  header{padding-left:10px;padding-right:10px}
+  .container{width:calc(100% - 14px);margin-top:9px}
+  .panel{padding:10px}
+  .input-row{grid-template-columns:1fr}
+  .filter-row{grid-template-columns:1fr}
+  input[type=text],button{grid-column:auto}
+  .status{font-size:12px;line-height:1.45}
+  .channel{padding:9px 8px;gap:8px}
+  .channel-name{font-size:13px}
+  .channel-group{font-size:10px}
+  .logo{width:38px;height:38px;flex:0 0 38px}
+  .now{font-size:13px;line-height:1.4}
+  footer{padding:14px 10px max(14px,env(safe-area-inset-bottom));}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>📺 ASHOK IPTV Player</h1>
+  <p>M3U / M3U8 Online & Local Playlist Player</p>
+</header>
+
+<div class="container">
+
+  <div class="panel">
+    <div class="input-row">
+      <input
+        id="playlistUrl"
+        type="text"
+        value="https://iptv-org.github.io/iptv/languages/hin.m3u"
+        placeholder="M3U / M3U8 URL डालें..."
+      >
+      <button onclick="loadFromURL()">🔗 Load Playlist</button>
+      <button class="secondary" onclick="clearAll()">✕ Clear</button>
+    </div>
+
+    <label class="file-label">
+      📂 Local M3U File
+      <input id="fileInput" type="file" accept=".m3u,.m3u8,.txt">
+    </label>
+
+    <div id="status" class="status">
+      Playlist load करने के लिए URL डालें।
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <div class="panel">
+      <div class="filter-row">
+        <input
+          id="search"
+          class="search"
+          type="search"
+          placeholder="🔎 Channel Search..."
+          oninput="filterChannels()"
+          aria-label="Search channels"
+        >
+        <select
+          id="groupFilter"
+          class="filter-select"
+          onchange="filterChannels()"
+          aria-label="Filter channels by group"
+        >
+          <option value="">All Groups</option>
+        </select>
+      </div>
+
+      <div id="channels" class="channels">
+        <div class="empty">कोई channel नहीं है।<br>पहले playlist load करें।</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <video id="video" controls playsinline></video>
+      <div id="nowPlaying" class="now">
+        ▶️ कोई channel selected नहीं है
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  ASHOK KUMAR YADAW • IPTV Player
+</footer>
+
+<script>
+let channels = [];
+let filteredChannels = [];
+let hls = null;
+
+const video = document.getElementById("video");
+const channelBox = document.getElementById("channels");
+const statusBox = document.getElementById("status");
+const nowPlaying = document.getElementById("nowPlaying");
+const fileInput = document.getElementById("fileInput");
+
+function setStatus(message){
+  statusBox.textContent = message;
+}
+
+async function loadFromURL(){
+
+  const url = document.getElementById("playlistUrl").value.trim();
+
+  if(!url){
+    setStatus("❌ कृपया M3U URL डालें।");
+    return;
+  }
+
+  setStatus("⏳ Playlist डाउनलोड हो रही है...");
+
+  try{
+    const response = await fetch(url, {
+      method:"GET",
+      mode:"cors"
+    });
+
+    if(!response.ok){
+      throw new Error("HTTP " + response.status);
+    }
+
+    const text = await response.text();
+
+    if(!text.includes("#EXTM3U") && !text.includes("#EXTINF")){
+      throw new Error("Valid M3U playlist नहीं मिली।");
+    }
+
+    parseM3U(text);
+
+  }catch(error){
+
+    console.error(error);
+
+    setStatus(
+      "❌ Playlist load नहीं हुई। सम्भवतः CORS/browser restriction है। " +
+      "Local M3U file upload करके भी try करें।"
+    );
+  }
+}
+
+fileInput.addEventListener("change", function(){
+
+  const file = this.files[0];
+
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    parseM3U(e.target.result);
+  };
+
+  reader.readAsText(file);
+});
+
+function parseM3U(text){
+
+  channels = [];
+
+  const lines = text.split(/\r?\n/);
+
+  let current = null;
+
+  for(let i=0;i<lines.length;i++){
+
+    const line = lines[i].trim();
+
+    if(!line) continue;
+
+    if(line.startsWith("#EXTINF:")){
+
+      const comma = line.indexOf(",");
+
+      let info = line.substring(0, comma);
+      let name = comma >= 0
+        ? line.substring(comma+1).trim()
+        : "Unknown Channel";
+
+      const logoMatch =
+        info.match(/tvg-logo="([^"]*)"/i);
+
+      const groupMatch =
+        info.match(/group-title="([^"]*)"/i);
+
+      const idMatch =
+        info.match(/tvg-id="([^"]*)"/i);
+
+      current = {
+        name:name || "Unknown Channel",
+        logo:logoMatch ? logoMatch[1] : "",
+        group:groupMatch ? groupMatch[1] : "",
+        id:idMatch ? idMatch[1] : "",
+        url:""
+      };
+
+    }else if(
+      !line.startsWith("#") &&
+      current
+    ){
+
+      current.url = line;
+
+      if(current.url){
+        channels.push(current);
+      }
+
+      current = null;
+    }
+  }
+
+  filteredChannels = [...channels];
+
+  populateGroupFilter();
+  renderChannels();
+
+  setStatus(
+    "✅ " + channels.length +
+    " channels मिले।"
+  );
+}
+
+function populateGroupFilter(){
+
+  const groupFilter = document.getElementById("groupFilter");
+  const groups = [...new Set(
+    channels.map(channel=>channel.group.trim() || "Live TV")
+  )].sort((a,b)=>a.localeCompare(b));
+
+  groupFilter.innerHTML = '<option value="">All Groups</option>';
+
+  groups.forEach(group=>{
+    const option = document.createElement("option");
+    option.value = group;
+    option.textContent = group;
+    groupFilter.appendChild(option);
+  });
+}
+
+function renderChannels(){
+
+  channelBox.innerHTML = "";
+
+  if(filteredChannels.length === 0){
+
+    channelBox.innerHTML =
+      '<div class="empty">कोई channel नहीं मिला।</div>';
+
+    return;
+  }
+
+  filteredChannels.forEach((channel,index)=>{
+
+    const div = document.createElement("div");
+
+    div.className = "channel";
+
+    div.dataset.index = index;
+
+    const logo = channel.logo
+      ? `<img class="logo" src="${escapeHTML(channel.logo)}"
+          onerror="this.style.display='none'">`
+      : `<div class="logo"></div>`;
+
+    div.innerHTML = `
+      ${logo}
+      <div>
+        <div class="channel-name">
+          ${escapeHTML(channel.name)}
+        </div>
+        <div class="channel-group">
+          ${escapeHTML(channel.group || "Live TV")}
+        </div>
+      </div>
+    `;
+
+    div.addEventListener("click",()=>{
+      playChannel(channel,div);
+    });
+
+    channelBox.appendChild(div);
+  });
+}
+
+function playChannel(channel, element){
+
+  document.querySelectorAll(".channel")
+    .forEach(el=>el.classList.remove("active"));
+
+  element.classList.add("active");
+
+  nowPlaying.textContent =
+    "▶️ Playing: " + channel.name;
+
+  playStream(channel.url);
+}
+
+function playStream(url){
+
+  if(hls){
+    hls.destroy();
+    hls = null;
+  }
+
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+
+  /*
+   * HLS (.m3u8)
+   */
+  if(
+    url.toLowerCase().includes(".m3u8") ||
+    url.toLowerCase().includes("m3u8")
+  ){
+
+    if(Hls.isSupported()){
+
+      hls = new Hls({
+        enableWorker:true,
+        lowLatencyMode:false
+      });
+
+      hls.loadSource(url);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED,()=>{
+        video.play().catch(()=>{});
+      });
+
+      hls.on(Hls.Events.ERROR,(event,data)=>{
+
+        console.log("HLS Error:",data);
+
+        if(data.fatal){
+
+          setStatus(
+            "❌ Stream play नहीं हो रही। " +
+            "Stream/CORS/browser restriction हो सकती है।"
+          );
+        }
+      });
+
+    }else if(video.canPlayType("application/vnd.apple.mpegurl")){
+
+      video.src = url;
+
+      video.addEventListener(
+        "loadedmetadata",
+        ()=>{
+          video.play().catch(()=>{});
+        },
+        {once:true}
+      );
+
+    }else{
+
+      setStatus("❌ इस browser में HLS supported नहीं है।");
+    }
+
+  }else{
+
+    /*
+     * सामान्य MP4/TS/HTTP stream
+     */
+    video.src = url;
+
+    video.play().catch(error=>{
+      console.log(error);
+
+      setStatus(
+        "⚠️ Browser ने autoplay रोक दिया। " +
+        "Play button दबाएँ।"
+      );
+    });
+  }
+}
+
+function filterChannels(){
+
+  const query =
+    document.getElementById("search")
+      .value
+      .toLowerCase()
+      .trim();
+
+  const selectedGroup =
+    document.getElementById("groupFilter").value;
+
+  filteredChannels = channels.filter(channel=>
+    (channel.name.toLowerCase().includes(query) ||
+     channel.group.toLowerCase().includes(query)) &&
+    (!selectedGroup ||
+     (channel.group.trim() || "Live TV") === selectedGroup)
+  );
+
+  renderChannels();
+}
+
+function clearAll(){
+
+  channels = [];
+  filteredChannels = [];
+
+  document.getElementById("search").value = "";
+  document.getElementById("groupFilter").innerHTML =
+    '<option value="">All Groups</option>';
+
+  if(hls){
+    hls.destroy();
+    hls = null;
+  }
+
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+
+  channelBox.innerHTML =
+    '<div class="empty">Playlist cleared.</div>';
+
+  nowPlaying.textContent =
+    "▶️ कोई channel selected नहीं है";
+
+  setStatus("Playlist clear कर दी गई।");
+}
+
+function escapeHTML(value){
+
+  return String(value)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+/*
+ * Enter key से URL load
+ */
+document
+  .getElementById("playlistUrl")
+  .addEventListener("keydown",e=>{
+    if(e.key==="Enter"){
+      loadFromURL();
+    }
+  });
+
+/*
+ * Default playlist को automatically load करने की कोशिश
+ */
+window.addEventListener("load",()=>{
+  loadFromURL();
+});
+</script>
+
+</body>
+</html>
